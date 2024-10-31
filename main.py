@@ -5,6 +5,7 @@ class Phone:
         self.state = 'onhook'  # Phone state: 'onhook', 'offhook', 'ringing', 'dialing', 'calling', 'connected'
         self.current_call = None  # Holds the current call participants
         self.ringing_from = None  # Who is calling this phone
+        self.call_type = 'normal'
 
     def __str__(self):
         # Return a string representation of the phone's status
@@ -75,17 +76,21 @@ class TelephoneSystem:
                 # Disconnect from any calls
                 if phone.current_call:
                     if isinstance(phone.current_call, list):
-                        # Remove this phone from the conference
-                        for other in phone.current_call:
-                            if other != phone:
-                                other.current_call.remove(phone)
-                                if len(other.current_call) == 1:
-                                    # Only one other phone left, change to normal call
-                                    other.current_call = other.current_call[0]
-                                    other.state = 'connected'
-                        phone.current_call = None
+                        # Conference call
+                        participants = phone.current_call
+                        participants.remove(phone)
+                        if len(participants) >= 2:
+                            # Update current_call for remaining participants
+                            for p in participants:
+                                p.current_call = participants
+                        elif len(participants) == 1:
+                            # Only one participant left
+                            remaining_phone = participants[0]
+                            remaining_phone.current_call = None
+                            remaining_phone.state = 'offhook'
+                        print(f"{phone.name} hangs up from conference.")
                     else:
-                        # Disconnect from the other phone
+                        # Normal call
                         other = phone.current_call
                         other.current_call = None
                         if other.state != 'onhook':
@@ -101,7 +106,6 @@ class TelephoneSystem:
                         print(f"{caller.name} hears silence.")
                         caller.state = 'offhook'
                         caller.current_call = None
-                        caller.ringing_to = None
                     phone.ringing_from = None
                 else:
                     phone.state = 'onhook'
@@ -129,6 +133,7 @@ class TelephoneSystem:
             # Set up the call
             caller.state = 'calling'
             caller.current_call = receiver
+            caller.call_type = 'normal'  # Reset call_type to 'normal' when initiating a normal call
             receiver.state = 'ringing'
             receiver.ringing_from = caller
             print(f"{caller.name} hears ringback.")
@@ -144,10 +149,55 @@ class TelephoneSystem:
         if phone:
             if phone.state == 'ringing':
                 caller = phone.ringing_from
-                phone.state = 'connected'
-                phone.current_call = caller
-                caller.state = 'connected'
-                print(f"{caller.name} and {phone.name} are talking.")
+                if not caller:
+                    print(f"Error: No caller information.")
+                    return
+                if caller.state == 'calling' and caller.current_call:
+                    if caller.call_type == 'conference':
+                        # Conference call
+                        if isinstance(caller.current_call, list):
+                            participants = caller.current_call
+                        else:
+                            participants = [caller, caller.current_call]
+                        # Check if phone is already in participants
+                        if phone not in participants:
+                            participants.append(phone)
+                        for p in participants:
+                            p.current_call = participants
+                            p.state = 'connected'
+                        phone.state = 'connected'
+                        print(f"{', '.join([p.name for p in participants])} are talking.")
+                    elif caller.call_type == 'transfer':
+                        # Transfer call
+                        other_party = caller.current_call
+                        # Connect other_party and phone
+                        other_party.current_call = phone
+                        other_party.state = 'connected'
+                        phone.current_call = other_party
+                        phone.state = 'connected'
+                        # Disconnect caller
+                        caller.current_call = None
+                        caller.state = 'offhook'
+                        print(f"{other_party.name} and {phone.name} are talking.")
+                        print(f"{caller.name} hears silence.")
+                    else:
+                        # Normal call
+                        phone.state = 'connected'
+                        phone.current_call = caller
+                        caller.state = 'connected'
+                        caller.current_call = phone
+                        print(f"{caller.name} and {phone.name} are talking.")
+                    # Clear ringing_from and reset call_type
+                    phone.ringing_from = None
+                    caller.call_type = 'normal'
+                else:
+                    # Normal call
+                    phone.state = 'connected'
+                    phone.current_call = caller
+                    caller.state = 'connected'
+                    caller.current_call = phone
+                    print(f"{caller.name} and {phone.name} are talking.")
+                    phone.ringing_from = None
             else:
                 print(f"{phone.name} is not ringing.")
         else:
@@ -175,13 +225,12 @@ class TelephoneSystem:
         if new_receiver.state == 'onhook':
             # Begin transfer process
             caller.state = 'calling'
-            caller.current_call = new_receiver
+            caller.call_type = 'transfer'  # Set call type
+            caller.current_call = other_party  # Keep track of the other party
             new_receiver.state = 'ringing'
             new_receiver.ringing_from = caller
             print(f"{caller.name} hears ringback.")
             print(f"{new_receiver.name} hears ringing.")
-            # When new_receiver answers, connect new_receiver and other_party
-            # For simplicity, we'll assume the transfer is completed when new_receiver goes offhook
         else:
             print(f"{caller.name} hears denial.")
 
@@ -201,20 +250,20 @@ class TelephoneSystem:
         if third_party.state == 'onhook':
             other_party = caller.current_call
             if isinstance(other_party, list):
-                if len(other_party) >= 3:
-                    print(f"{caller.name} hears denial.")
-                    return
-                participants = other_party + [third_party]
+                participants = other_party
             else:
-                participants = [caller, other_party, third_party]
-            # Begin conference process
-            caller.state = 'calling'
+                participants = [caller, other_party]
+            if len(participants) >= 3:
+                print(f"{caller.name} hears denial.")
+                return
+            participants.append(third_party)
             caller.current_call = participants
+            caller.state = 'calling'
+            caller.call_type = 'conference'  # Set call type
             third_party.state = 'ringing'
             third_party.ringing_from = caller
             print(f"{caller.name} hears ringback.")
             print(f"{third_party.name} hears ringing.")
-            # When third_party answers, all are connected
         else:
             print(f"{caller.name} hears denial.")
 
@@ -227,10 +276,14 @@ class TelephoneSystem:
 
         if phone.state == 'onhook':
             self.offhook(identifier)
+            phone.call_type = 'normal'  # Reset call_type to 'normal' when going offhook
         elif phone.state == 'ringing':
             self.answer_call(identifier)
-        else:
+        elif phone.state in ['offhook', 'dialing', 'calling', 'connected']:
             print(f"{phone.name} hears silence.")
+        else:
+            print(f"{phone.name} hears denial.")
+
 
 def main():
     system = TelephoneSystem()
