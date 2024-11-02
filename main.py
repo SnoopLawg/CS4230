@@ -88,6 +88,7 @@ class TelephoneSystem:
                             remaining_phone = participants[0]
                             remaining_phone.current_call = None
                             remaining_phone.state = 'offhook'
+                        phone.current_call = None # Clear current_call
                         print(f"{phone.name} hangs up from conference.")
                     else:
                         # Normal call
