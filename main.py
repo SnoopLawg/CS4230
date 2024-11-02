@@ -79,10 +79,18 @@ class TelephoneSystem:
                         # Conference call
                         participants = phone.current_call
                         participants.remove(phone)
-                        if len(participants) >= 2:
+                        if len(participants) > 2:
                             # Update current_call for remaining participants
                             for p in participants:
                                 p.current_call = participants
+                        elif len(participants) == 2:
+                            # Two participants left revert to normal call
+                            remaining_phone1, remaining_phone2 = participants
+                            remaining_phone1.current_call = remaining_phone2
+                            remaining_phone2.current_call = remaining_phone1
+                            remaining_phone1.state = 'connected'
+                            remaining_phone2.state = 'connected'
+                            print(f"{remaining_phone1.name} and {remaining_phone2.name} are talking.")
                         elif len(participants) == 1:
                             # Only one participant left
                             remaining_phone = participants[0]
