@@ -111,10 +111,32 @@ class TelephoneSystem:
                     # Missed call
                     phone.state = 'onhook'
                     caller = phone.ringing_from
-                    if caller and caller.state == 'calling':
-                        print(f"{caller.name} hears silence.")
-                        caller.state = 'offhook'
-                        caller.current_call = None
+                    if caller and caller.state == 'calling': # Check if caller is still calling 
+                        if caller.call_type == 'normal': 
+                            # Missed normal call
+                            print(f"{caller.name} hears silence.")
+                            caller.state = 'offhook'
+                            caller.current_call = None
+                        elif caller.call_type == 'transfer': 
+                            # Failed transfer
+                            caller.state = 'connected'
+                            caller.current_call = caller.current_call
+                            print(f"Transfer to {phone.name} failed.")
+                            print(f"{caller.name} and {caller.current_call.name} are talking.")
+                            phone.ringing_from.call_type = 'normal'
+                            caller.current_call.call_type = 'normal'
+                        elif caller.call_type == 'conference':
+                            # Failed Conference
+                            # Unpack participants
+                            remaining_phone1, remaining_phone2 = caller.current_call[0], caller.current_call[1] 
+                            # Reset states
+                            remaining_phone1.state, remaining_phone2.state = 'connected', 'connected'
+                            # Reset failed conference call to normal call
+                            remaining_phone1.current_call, remaining_phone2.current_call = remaining_phone2, remaining_phone1
+                            # Reset call types
+                            remaining_phone1.call_type, remaining_phone2.call_type = 'normal', 'normal'
+                            print(f"Conference call failed.")
+                            print(f"{remaining_phone1.name} and {remaining_phone2.name} are talking.")
                     phone.ringing_from = None
                 else:
                     phone.state = 'onhook'
