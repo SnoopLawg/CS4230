@@ -1,0 +1,67 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2820
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fnil\fcharset0 Menlo-Regular;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww22720\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 ---\
+\
+Instructions Overview:\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 1. Setup: At startup, the program reads a file with up to 20 lines of phone data, each containing a 5-digit number and a name (12 characters max, alphabetic).\
+\
+2. Commands: Commands allow users to perform actions on phones by either their name or number.\
+    - status: Displays a list of all phones and their statuses.\
+    - offhook: Takes a phone off the hook, enabling it to initiate or answer a call. Usage: phone1 offhook.\
+    - call: Initiates a call from phone1 to phone2. phone1 must be off-hook, and phone2 must be on-hook and not in an existing call. Usage: phone1 call phone2.\
+    - onhook: Ends an active call, exits a conference, or denies an incoming call. Usage: phone1 onhook.\
+    - transfer: Transfers an existing call from phone1 to phone3 while phone1 is in a call with phone2. Usage: phone1 transfer phone3.\
+    - conference: Adds phone3 to an ongoing call between phone1 and phone2, making it a three-way conference. Usage: phone1 conference phone3.\
+\
+   Note: For both transfers and conferences, if they fail, the original call remains active with its initial participants.\
+\
+3. Case Sensitivity: Phone names are case-sensitive, but commands are not.\
+\
+4. Responses: The system will respond based on each phone\'92s status or command conditions, as outlined below:\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+---\
+\
+Response/Use Examples:\
+\
+1. Normal Call:\
+    - User Command: phone1 offhook\
+    - Response: phone1 hears dialtone\
+    - User Command: phone1 call phone2\
+    - Response: phone1 hears ringback, phone2 hears ringing\
+    - User Command: phone2 offhook\
+    - Response: phone1 and phone2 are talking\
+    - User Command: phone2 onhook\
+    - Response: phone1 hears silence\
+\
+2. Conference Call (initiated after phone1 and phone2 are in an active call):\
+    - User Command: phone1 conference phone3\
+    - Response: phone1 hears ringback, phone3 hears ringing\
+    - User Command: phone3 offhook\
+    - Response: phone1 and phone2 and phone3 are talking\
+    - User Command: phone1 onhook\
+    - Response: phone2 and phone3 are talking, phone1 hears silence\
+\
+3. Call Transfer (initiated after phone1 and phone2 are in an active call):\
+    - User Command: phone1 transfer phone3\
+    - Response: phone1 hears ringback, phone3 hears ringing\
+    - User Command: phone3 offhook\
+    - Response: phone2 and phone3 are talking, phone1 hears silence\
+\
+4. Incoming Call Busy:\
+    - When phone3 attempts to call phone1 while phone1 and phone2 are in an active call:\
+      - User Command: phone3 offhook, then phone3 call phone1\
+      - Response: phone3 hears busy \
+\
+5. Status:\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0     - User Command: status\
+    - Response: System outputs all phone statuses: \'93name (number), and whether they are offhook, onhook, and if engaged in a call, who they are speaking with\
+}
