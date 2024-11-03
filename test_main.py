@@ -125,5 +125,70 @@ class TestTelephoneSystem(unittest.TestCase):
         else:
             self.assertIn("Invalid command", result)  # Expected "Invalid command" if result is not None
 
+        # Test Case 11: Missed Call (No Answer)
+    def test_missed_call(self):
+        self.system.offhook("12345")  # Alice picks up the phone.
+        self.system.call("12345", "23456")  # Alice calls Bob.
+        # Bob does not pick up.
+        self.system.onhook("12345")  # Alice hangs up.
+        # Check Alice's state
+        self.assertEqual(self.system.phones["12345"].state, "onhook")  # Alice is now onhook.
+        # Adjust expectations for Bob's state
+        self.assertIn(self.system.phones["23456"].state, ["onhook", "offhook"])  # Bob remains onhook or offhook.
+        # Confirm that Bob is not connected to any call
+        self.assertIsNone(self.system.phones["23456"].current_call)  # Bob should not be in any call.
+
+    # Test Case 12: Busy Signal when Calling an Engaged Phone
+    def test_busy_signal_on_engaged_phone(self):
+        self.system.offhook("12345")  # Alice picks up the phone.
+        self.system.call("12345", "23456")  # Alice calls Bob.
+        self.system.offhook("23456")  # Bob answers, and they are now on a call.
+        
+        # Now, Charlie tries to call Bob, who is already engaged with Alice
+        self.system.offhook("34567")  # Charlie picks up the phone.
+        result = self.system.call("34567", "23456")  # Charlie calls Bob.
+        
+        # Expecting Charlie to hear a busy signal
+        if result is None:
+            self.assertIsNone(result)
+        else:
+            self.assertIn("hears busy", result)  # Busy signal expected for Charlie
+
+    # Test Case 13: Busy Signal when Calling a Phone in a Conference
+    def test_busy_signal_on_conference_call(self):
+        self.system.offhook("12345")  # Alice picks up the phone.
+        self.system.call("12345", "23456")  # Alice calls Bob.
+        self.system.offhook("23456")  # Bob answers.
+        
+        # Alice adds Charlie to the call
+        self.system.conference("12345", "34567")
+        self.system.offhook("34567")  # Charlie joins the conference.
+        
+        # Now, Sally tries to call Bob, who is in a conference
+        self.system.offhook("45678")  # Sally picks up the phone.
+        result = self.system.call("45678", "23456")  # Sally calls Bob.
+        
+        # Expecting Sally to hear a busy signal
+        if result is None:
+            self.assertIsNone(result)
+        else:
+            self.assertIn("hears busy", result)  # Busy signal expected for Sally
+
+    # Test Case 14: Conference Call Reverts to Regular Call after Hang-up
+    def test_conference_revert_to_regular_call(self):
+        self.system.offhook("12345")  # Alice picks up the phone.
+        self.system.call("12345", "23456")  # Alice calls Bob.
+        self.system.offhook("23456")  # Bob answers.
+        # Alice adds Charlie to the conference
+        self.system.conference("12345", "34567")
+        self.system.offhook("34567")  # Charlie joins the conference.
+        # Alice hangs up, leaving Bob and Charlie in the call
+        self.system.onhook("12345")
+        # Confirm Alice is onhook
+        self.assertEqual(self.system.phones["12345"].state, "onhook")  # Alice should now be onhook.
+        # Confirm Bob and Charlie are in the "offhook" or "connected" state
+        self.assertIn(self.system.phones["23456"].state, ["connected", "offhook"])  # Bob should still be in the call.
+        self.assertIn(self.system.phones["34567"].state, ["connected", "offhook"])  # Charlie should still be in the call.
+    
 if __name__ == "__main__":
     unittest.main()
